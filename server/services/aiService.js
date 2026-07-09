@@ -75,14 +75,87 @@ const mockAssessments = [
 ];
 
 /**
- * Transcribes audio via OpenAI Whisper API.
+ * Detects the language of audio using OpenAI Whisper API.
+ * @param {string} filePath Local path to audio file
+ * @returns {Promise<string>} Detected language code
+ */
+const detectLanguage = async (filePath, originalName) => {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn("OpenAI API key not configured. Using Mock Language Detection.");
+    
+    // In mock mode, we can simulate language detection based on filename or content
+    // For testing: if filename contains certain keywords, simulate different languages
+    const fileName = (originalName || filePath).toLowerCase();
+    if (fileName.includes('hindi') || fileName.includes('telugu') || fileName.includes('tamil')) {
+      return 'hi'; // Simulate Hindi/Indian languages
+    }
+    if (fileName.includes('spanish') || fileName.includes('espanol')) {
+      return 'es'; // Simulate Spanish
+    }
+    if (fileName.includes('french') || fileName.includes('francais')) {
+      return 'fr'; // Simulate French
+    }
+    if (fileName.includes('chinese') || fileName.includes('mandarin')) {
+      return 'zh'; // Simulate Chinese
+    }
+    
+    // For uploaded files (which get renamed), we can use a simple heuristic:
+    // In a real test environment, you would normally have actual non-English audio files
+    // For now, default to English to allow testing of the core functionality
+    return 'en';
+  }
+
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    const fileBlob = new Blob([fileBuffer], { type: 'audio/mpeg' });
+
+    const formData = new FormData();
+    formData.append('file', fileBlob, 'audio.mp3');
+    formData.append('model', 'whisper-1');
+    // No language specified - let Whisper detect it
+
+    console.log("Detecting speech language with Whisper API...");
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Whisper API failed with status ${response.status}: ${errText}`);
+    }
+
+    const result = await response.json();
+    return result.language || 'unknown';
+  } catch (error) {
+    console.error("Language Detection Error:", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Transcribes audio via OpenAI Whisper API (English only).
  * @param {string} filePath Local path to audio file
  * @returns {Promise<string>} Transcribed text
  */
-const transcribeAudio = async (filePath) => {
+const transcribeAudio = async (filePath, originalName) => {
   const apiKey = process.env.OPENAI_API_KEY;
+  
+  // ALWAYS detect language first, regardless of API key availability
+  const detectedLanguage = await detectLanguage(filePath, originalName);
+  console.log(`Detected language: ${detectedLanguage}`);
+
+  // Reject if not English
+  if (detectedLanguage !== 'en' && detectedLanguage !== 'english') {
+    throw new Error('LANGUAGE_NOT_ENGLISH');
+  }
+  
   if (!apiKey) {
-    console.warn("OpenAI API key not configured. Using Mock Transcription.");
+    console.warn("OpenAI API key not configured. Using Mock Transcription (English validated).");
     const randomIndex = Math.floor(Math.random() * mockAssessments.length);
     return mockAssessments[randomIndex].transcript;
   }
@@ -96,7 +169,7 @@ const transcribeAudio = async (filePath) => {
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
 
-    console.log("Calling OpenAI Whisper API...");
+    console.log("Transcribing English audio with Whisper API...");
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
@@ -193,6 +266,7 @@ You MUST respond strictly with a JSON object in this format:
 };
 
 module.exports = {
+  detectLanguage,
   transcribeAudio,
   evaluatePronunciation,
 };

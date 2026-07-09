@@ -47,9 +47,20 @@ const uploadAudioAndAnalyze = async (req, res) => {
       });
     }
 
-    // 1. Transcribe speech using Whisper STT
-    console.log('Sending audio to Whisper Speech-to-Text...');
-    const transcript = await transcribeAudio(filePath);
+    // 1. Transcribe speech using Whisper STT (with language detection)
+    console.log('Detecting language and transcribing speech...');
+    let transcript;
+    try {
+      // Pass the original filename so mock language detection can infer language
+      transcript = await transcribeAudio(filePath, req.file.originalname);
+    } catch (transcriptionError) {
+      if (transcriptionError.message === 'LANGUAGE_NOT_ENGLISH') {
+        return res.status(422).json({
+          message: 'Only English speech is supported. Please upload or record an English audio between 30 and 45 seconds.',
+        });
+      }
+      throw transcriptionError; // Re-throw other errors
+    }
 
     if (!transcript || transcript.trim() === '') {
       return res.status(422).json({
