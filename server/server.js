@@ -25,21 +25,37 @@ const app = express();
 app.use(helmet());
 
 // 2. CORS configuration
-const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:5173'];
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, postman)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
-        callback(null, true);
-      } else {
-        callback(new Error('Blocked by CORS policy'));
-      }
-    },
-    credentials: true,
-  })
-);
+// In development, reflect the request origin to avoid CORS issues with varying dev ports.
+if (process.env.NODE_ENV === 'production') {
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const vercelOriginPattern = /^https:\/\/([a-z0-9-]+\.)*vercel\.app$/i;
+
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes('*') || allowedOrigins.includes(origin) || vercelOriginPattern.test(origin)) {
+          callback(null, true);
+        } else {
+          console.error('CORS blocked origin:', origin);
+          callback(new Error('Blocked by CORS policy'));
+        }
+      },
+      credentials: true,
+    })
+  );
+} else {
+  // Development: allow the browser origin dynamically (while keeping credentials)
+  app.use(
+    cors({
+      origin: true,
+      credentials: true,
+    })
+  );
+}
 
 // 3. Express body parsers
 app.use(express.json());

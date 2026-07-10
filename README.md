@@ -102,7 +102,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:5173
 ```
-> **Note**: If `OPENAI_API_KEY` is left blank, the server automatically operates in **Mock Demo mode**. It will validate audio file durations and output realistic, simulated pronunciation assessments, allowing full testing of charts, history, profiles, and PDF compilation without charges.
+> **Note**: If `OPENAI_API_KEY` is left blank, the server automatically operates in **Mock Demo mode**. It will validate audio file durations and output realistic, simulated pronunciation assessments, allowing full testing of charts, history, profiles, and PDF compilation without charges. Real Whisper-based transcription and language detection require a valid OpenAI API key; without one, the app uses the built-in mock pipeline instead.
 
 ### 3. Run Development Servers
 Open two terminal windows or run scripts concurrently from the root directory:
