@@ -1,11 +1,5 @@
 import axios from 'axios';
-
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
-
-// Create Axios instance pointing to the configured API endpoint.
-// In development this defaults to the Vite proxy, while production can target a separate backend host.
-const api = axios.create({
-  baseURL: apiBaseUrl,
+,
   headers: {
     'Content-Type': 'application/json',
   },

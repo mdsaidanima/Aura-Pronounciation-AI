@@ -79,6 +79,16 @@ app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/reports', reportRoutes);
+// Health/status endpoint for /api root must be registered before routes
+// that apply auth (e.g. uploadRoutes) so it isn't intercepted.
+app.get('/api', (req, res) => {
+  res.json({
+    status: 'online',
+    message: 'Aura Pronunciation AI Assessment Server API is operational.',
+    dpdpVersion: '2023 Compliant',
+  });
+});
+
 app.use('/api', uploadRoutes); // Register /upload and /analyze
 
 // Top-level direct download route for reports
@@ -92,6 +102,8 @@ app.get('/', (req, res) => {
     dpdpVersion: '2023 Compliant',
   });
 });
+
+// (api root handler is registered earlier to avoid being blocked by routers)
 
 // 404 handler
 app.use((req, res, next) => {

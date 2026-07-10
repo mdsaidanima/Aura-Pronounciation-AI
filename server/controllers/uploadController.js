@@ -1,7 +1,7 @@
 const fs = require('fs');
 const musicMetadata = require('music-metadata');
 const Report = require('../models/Report');
-const { transcribeAudio, evaluatePronunciation } = require('../services/aiService');
+const { transcribeAudio, evaluatePronunciation, isLikelyEnglish } = require('../services/aiService');
 
 /**
  * @desc    Upload English audio and perform AI Pronunciation Analysis
@@ -65,6 +65,16 @@ const uploadAudioAndAnalyze = async (req, res) => {
     if (!transcript || transcript.trim() === '') {
       return res.status(422).json({
         message: 'No speech could be detected in the audio file. Please speak clearly in English.',
+      });
+    }
+
+    // Additional heuristic check to ensure the transcript is actually English.
+    // This helps catch cases where mock detection or filename heuristics incorrectly
+    // allowed non-English audio through the pipeline.
+    const englishLikely = isLikelyEnglish(transcript);
+    if (!englishLikely) {
+      return res.status(422).json({
+        message: 'Only English speech is supported. Please upload or record an English audio between 30 and 45 seconds.',
       });
     }
 

@@ -82,28 +82,18 @@ const mockAssessments = [
 const detectLanguage = async (filePath, originalName) => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    console.warn("OpenAI API key not configured. Using Mock Language Detection.");
-    
-    // In mock mode, we can simulate language detection based on filename or content
-    // For testing: if filename contains certain keywords, simulate different languages
-    const fileName = (originalName || filePath).toLowerCase();
-    if (fileName.includes('hindi') || fileName.includes('telugu') || fileName.includes('tamil')) {
-      return 'hi'; // Simulate Hindi/Indian languages
+    console.warn("OpenAI API key not configured. Using Mock Language Detection (no filename heuristics).");
+
+    // In mock mode we no longer rely on filenames to infer language.
+    // Instead, use a mock transcript sample and run the English heuristic to decide.
+    // This avoids false positives when browser recordings have generic filenames.
+    const sample = mockAssessments[Math.floor(Math.random() * mockAssessments.length)].transcript;
+    try {
+      const likelyEnglish = isLikelyEnglish(sample);
+      return likelyEnglish ? 'en' : 'unknown';
+    } catch (e) {
+      return 'unknown';
     }
-    if (fileName.includes('spanish') || fileName.includes('espanol')) {
-      return 'es'; // Simulate Spanish
-    }
-    if (fileName.includes('french') || fileName.includes('francais')) {
-      return 'fr'; // Simulate French
-    }
-    if (fileName.includes('chinese') || fileName.includes('mandarin')) {
-      return 'zh'; // Simulate Chinese
-    }
-    
-    // For uploaded files (which get renamed), we can use a simple heuristic:
-    // In a real test environment, you would normally have actual non-English audio files
-    // For now, default to English to allow testing of the core functionality
-    return 'en';
   }
 
   try {
@@ -270,3 +260,38 @@ module.exports = {
   transcribeAudio,
   evaluatePronunciation,
 };
+
+/**
+ * Heuristic check to determine if a transcript is likely English.
+ * Returns true when transcript contains a reasonable fraction of English stopwords
+ * and is mostly ASCII text. This helps block music, silence, or non-English audio
+ * in environments where a real ASR/language-detector (OpenAI) is not available.
+ * @param {string} transcript
+ * @returns {boolean}
+ */
+const isLikelyEnglish = (transcript) => {
+  if (!transcript || typeof transcript !== 'string') return false;
+  const txt = transcript.trim();
+  if (txt.length === 0) return false;
+
+  // Reject very short transcripts (likely silence or music)
+  const words = txt.split(/\s+/).filter(Boolean);
+  if (words.length < 3) return false;
+
+  // If transcript contains many non-ASCII characters, likely non-English script
+  const nonAscii = (txt.match(/[^\x00-\x7F]/g) || []).length;
+  if (nonAscii / Math.max(txt.length, 1) > 0.1) return false;
+
+  // Basic English stopword presence heuristic
+  const stopwords = new Set(['the','be','to','of','and','a','in','that','it','is','for','on','with','as','this','i','you','are']);
+  let stopwordCount = 0;
+  for (const w of words) {
+    if (stopwords.has(w.toLowerCase().replace(/[^a-z']/g, ''))) stopwordCount++;
+  }
+
+  const ratio = stopwordCount / words.length;
+  // If at least 15% of words are common English stopwords, consider English
+  return ratio >= 0.15;
+};
+
+module.exports.isLikelyEnglish = isLikelyEnglish;
