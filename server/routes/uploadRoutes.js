@@ -5,9 +5,6 @@ const upload = require('../middleware/uploadMiddleware');
 
 const router = express.Router();
 
-// Apply auth protection
-router.use(protect);
-
 // Error handler wrapper for Multer limits or file filter rejections
 const handleUpload = (req, res, next) => {
   const uploadSingle = upload.single('audio');
