@@ -204,8 +204,14 @@ const Upload = () => {
         },
       });
 
+      const reportId = response.data?._id || response.data?.report?._id || response.data?.id;
+
+      if (!reportId) {
+        throw new Error('Report ID was not returned by the analysis service.');
+      }
+
       toastSuccess('Analysis complete! Redirecting...');
-      navigate(`/reports/${response.data._id}`);
+      navigate(`/reports/${reportId}`);
 
     } catch (error) {
       console.error('Analysis submission failure:', error);
