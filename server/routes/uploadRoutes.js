@@ -21,7 +21,7 @@ const handleUpload = (req, res, next) => {
 // @route   POST /api/upload
 // @route   POST /api/analyze
 // Maps both routes to the upload & assessment pipeline
-router.post('/upload', handleUpload, uploadAudioAndAnalyze);
-router.post('/analyze', handleUpload, uploadAudioAndAnalyze);
+router.post('/upload', protect, handleUpload, uploadAudioAndAnalyze);
+router.post('/analyze', protect, handleUpload, uploadAudioAndAnalyze);
 
 module.exports = router;

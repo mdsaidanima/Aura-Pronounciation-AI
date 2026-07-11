@@ -204,10 +204,12 @@ const Upload = () => {
         },
       });
 
-      const reportId = response.data?._id || response.data?.report?._id || response.data?.id;
+      const reportId = response.data?.report?._id;
 
       if (!reportId) {
-        throw new Error('Report ID was not returned by the analysis service.');
+        toastError('Analysis completed, but the report could not be opened.');
+        setIsAnalyzing(false);
+        return;
       }
 
       toastSuccess('Analysis complete! Redirecting...');

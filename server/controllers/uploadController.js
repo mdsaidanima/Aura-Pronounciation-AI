@@ -99,8 +99,11 @@ const uploadAudioAndAnalyze = async (req, res) => {
 
     console.log(`Pronunciation report ${report._id} saved successfully.`);
 
-    // Return the report details
-    res.status(201).json(report);
+    // Return the report details in a stable envelope for the client
+    res.status(201).json({
+      success: true,
+      report,
+    });
   } catch (error) {
     console.error('Audio assessment processing failed:', error.message);
     res.status(500).json({
